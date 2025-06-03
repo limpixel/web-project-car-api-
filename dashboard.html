@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Mobil</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-3xl font-bold mb-6">Dashboard Mobil</h1>
+
+    <!-- Form Tambah/Edit -->
+    <form id="carForm" class="grid grid-cols-2 gap-4 mb-8">
+      <input type="hidden" id="carId" />
+      <input id="brand" placeholder="Brand" class="border p-2 rounded" required />
+      <input id="model" placeholder="Model" class="border p-2 rounded" required />
+      <input id="price" type="number" placeholder="Price" class="border p-2 rounded" required />
+      <input id="type" placeholder="Type" class="border p-2 rounded" required />
+      <input id="image_url" placeholder="Image URL" class="col-span-2 border p-2 rounded" required />
+      <button type="submit" class="col-span-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded">
+        Simpan Mobil
+      </button>
+    </form>
+
+    <!-- Tabel Mobil -->
+    <table class="w-full text-left border">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2">Brand</th>
+          <th class="p-2">Model</th>
+          <th class="p-2">Price</th>
+          <th class="p-2">Type</th>
+          <th class="p-2">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="carTableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const API_URL = 'https://api-elecar-default-rtdb.firebaseio.com/cars';
+
+    async function fetchCars() {
+      const res = await fetch(`${API_URL}.json`);
+      const data = await res.json();
+
+      const tbody = document.getElementById('carTableBody');
+      tbody.innerHTML = '';
+
+      for (const id in data) {
+        const car = data[id];
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="border p-2">${car.brand}</td>
+          <td class="border p-2">${car.model}</td>
+          <td class="border p-2">$${car.price}</td>
+          <td class="border p-2">${car.type}</td>
+          <td class="border p-2 space-x-2">
+            <button onclick='editCar("${id}")' class="bg-yellow-400 px-2 py-1 rounded">Edit</button>
+            <button onclick='deleteCar("${id}")' class="bg-red-500 text-white px-2 py-1 rounded">Hapus</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+
+    document.getElementById('carForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('carId').value;
+      const carData = {
+        brand: document.getElementById('brand').value,
+        model: document.getElementById('model').value,
+        price: parseInt(document.getElementById('price').value),
+        type: document.getElementById('type').value,
+        image_url: document.getElementById('image_url').value
+      };
+
+      if (id) {
+        // Update
+        await fetch(`${API_URL}/${id}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...carData, id })
+        });
+      } else {
+        // Create
+        await fetch(`${API_URL}.json`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(carData)
+        });
+      }
+
+      e.target.reset();
+      document.getElementById('carId').value = '';
+      fetchCars();
+    });
+
+    async function deleteCar(id) {
+      if (confirm("Yakin ingin menghapus mobil ini?")) {
+        await fetch(`${API_URL}/${id}.json`, { method: 'DELETE' });
+        fetchCars();
+      }
+    }
+
+    async function editCar(id) {
+      const res = await fetch(`${API_URL}/${id}.json`);
+      const data = await res.json();
+
+      document.getElementById('carId').value = id;
+      document.getElementById('brand').value = data.brand;
+      document.getElementById('model').value = data.model;
+      document.getElementById('price').value = data.price;
+      document.getElementById('type').value = data.type;
+      document.getElementById('image_url').value = data.image_url;
+    }
+
+    fetchCars();
+  </script>
+</body>
+</html>
